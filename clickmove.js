@@ -16,8 +16,10 @@ const inventoryViewer = require('mineflayer-web-inventory');
 */
 
 const bot = mineflayer.createBot({
-  host: "localhost",
-  username: "Player"
+  host: process.argv[2],
+  port: 25565,
+  username: process.argv[3],
+  password: process.argv[4]
 })
 
 
