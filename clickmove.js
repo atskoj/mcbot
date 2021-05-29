@@ -2,22 +2,27 @@ const mineflayer = require('mineflayer')
 const mineflayerViewer = require('prismarine-viewer').mineflayer
 
 const { pathfinder, Movements } = require('mineflayer-pathfinder')
-const { GoalBlock } = require('mineflayer-pathfinder').goals
+const { GoalNear, GoalBlock, GoalXZ, GoalY, GoalInvert, GoalFollow } = require('mineflayer-pathfinder').goals
 
-const inventoryViewer = require('mineflaye-web-inventory');
+const inventoryViewer = require('mineflayer-web-inventory');
 
-var radarPlugin = require('mineflayer-radar')(mineflayer);
 
-const bot = mineflayer.createBot({
+/*const bot = mineflayer.createBot({
   host: process.argv[2],
   port: parseInt(process.argv[3]),
   username: process.argv[4],
   password: process.argv[5]
 })
+*/
 
-bot.loadPlugin(pathfinder)
+const bot = mineflayer.createBot({
+  host: "localhost",
+  username: "Player"
+})
+
+
+bot.loadPlugin(pathfinder);
 inventoryViewer(bot, {port: 3001});
-radarPlugin(bot, {port: 3002});
 
 var stdin = process.openStdin();
 
@@ -29,19 +34,44 @@ stdin.addListener("data", function(d) {
   switch(dargs[0])
   {
     default:
-      break
+      break;
+
+    case "help":
+      console.log("commands are:\n say (message) \n path (x,z) \n msg (user) (message)");
+      break;
 
     case "say":
-      var toSay = dargs.slice(1);
-      bot.chat(toSay);
+      var toSay = dargs.slice(1).toString();
+      bot.chat(toSay.replace(/,/g , " "));
+      break;
+
+    case "path":
+      var mcData = require('minecraft-data')(bot.version);
+      var defaultMove = new Movements(bot, mcData);
+      bot.pathfinder.setMovements(defaultMove);
+      bot.pathfinder.goto(new GoalXZ(dargs[1],dargs[2]));
+      break;
+
+    case "msg":
+      var toSay = dargs.slice(2).toString();
+      bot.whisper(dargs[1], toSay.replace(/,/g , " "));
+      break;
+
+    case "coords":
+      console.log(bot.entity.position);
   }
 });
 
 bot.on('kicked', console.log)
 bot.on('error', console.log)
 
+bot.on('message', (message) => {
+  console.log(message.toAnsi())
+});
+
+
 bot.once('spawn', () => {
-  mineflayerViewer(bot, { port: 3000 })
+  mineflayerViewer(bot, { firstPerson: true, port: 3000 });
 
   bot.on('path_update', (r) => {
     const nodesPerTick = (r.visitedNodes * 50 / r.time).toFixed(2)
@@ -53,12 +83,11 @@ bot.once('spawn', () => {
     bot.viewer.drawLine('path', path, 0xff00ff)
   })
 
-  const mcData = require('minecraft-data')(bot.version)
-  const defaultMove = new Movements(bot, mcData)
 
   bot.viewer.on('blockClicked', (block, face, button) => {
     if (button !== 2) return // only right click
-
+    var mcData = require('minecraft-data')(bot.version);
+    var defaultMove = new Movements(bot, mcData);
     const p = block.position.offset(0, 1, 0)
 
     bot.pathfinder.setMovements(defaultMove)
