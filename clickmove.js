@@ -4,6 +4,10 @@ const mineflayerViewer = require('prismarine-viewer').mineflayer
 const { pathfinder, Movements } = require('mineflayer-pathfinder')
 const { GoalBlock } = require('mineflayer-pathfinder').goals
 
+const inventoryViewer = require('mineflaye-web-inventory');
+
+var radarPlugin = require('mineflayer-radar')(mineflayer);
+
 const bot = mineflayer.createBot({
   host: process.argv[2],
   port: parseInt(process.argv[3]),
@@ -12,6 +16,26 @@ const bot = mineflayer.createBot({
 })
 
 bot.loadPlugin(pathfinder)
+inventoryViewer(bot, {port: 3001});
+radarPlugin(bot, {port: 3002});
+
+var stdin = process.openStdin();
+
+//live listener
+stdin.addListener("data", function(d) {
+  reald = d.toString().trim();
+  var dargs = reald.split(' ');
+
+  switch(dargs[0])
+  {
+    default:
+      break
+
+    case "say":
+      var toSay = dargs.slice(1);
+      bot.chat(toSay);
+  }
+});
 
 bot.on('kicked', console.log)
 bot.on('error', console.log)
